@@ -152,9 +152,9 @@ def save_thumbnail(pil_img, size, path):
 if __name__ == '__main__':
     SCALE = 8
     FORMAT = '.png'
-    SLIDE_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/orig_data/'
-    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/scaledown8_png/'
-    THM_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/thumbnail/'
+    SLIDE_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/orig_data/'
+    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/5x_png/'
+    THM_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/thumbnail/'
 
     training_slides_to_images(SCALE, SLIDE_DIR, IMG_DIR, THM_DIR, save_format=FORMAT)
 
