@@ -21,6 +21,25 @@ def generate_std_mask(slide, tissue_mask_dir, anno_mask_dir, save_dir):
     mask.save(os.path.join(save_dir, slide+'.png'))
 
 
+def generate_std_mask_one_component(slide, tissue_mask_dir, anno_mask_dir, save_dir):
+    tissue_mask_path = os.path.join(tissue_mask_dir, slide+'.png')
+    anno_mask_path = os.path.join(anno_mask_dir, slide+'.png')
+    print(anno_mask_path)
+    tissue_mask = cv2.cvtColor(cv2.imread(tissue_mask_path), cv2.COLOR_BGR2GRAY)
+    anno_mask = np.array(Image.open(anno_mask_path))
+
+    n, label, stats, centrids = cv2.connectedComponentsWithStats(tissue_mask, connectivity=8)
+    index = np.argmax(stats[1:, 4])+1
+    new_mask = np.zeros_like(tissue_mask, dtype='uint8')
+    new_mask[label==index] = 1
+
+    mask = new_mask * anno_mask + new_mask
+    mask = Image.fromarray(mask)
+
+    mask.save(os.path.join(save_dir, slide+'.png'))
+
+
+
 def generate_anno_mask(slide, scale, data_dir, save_dir):
     wsi_path = os.path.join(data_dir, slide+'.svs')
     anno_path = os.path.join(data_dir, slide+ '.xml')
@@ -37,7 +56,7 @@ def generate_anno_mask(slide, scale, data_dir, save_dir):
         cv2.fillPoly(mask, np.int32([region]), label)
     
     re_w = math.floor(w / scale); re_h = math.floor(h / scale)
-    mask = cv2.resize(mask, (re_w, re_h))
+    mask = cv2.resize(mask, (re_w, re_h), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite(os.path.join(save_dir, slide+'.png'), mask)
 
 
@@ -75,9 +94,10 @@ def get_regions(path):
 
 if __name__ == '__main__':
     DATA_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/orig_data/'
-    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_x8/anno_mask/'
-    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_x8/std_mask/'
-    TISSUE_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/filter_x8/filtered_mask/'
+    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/anno_mask/'
+    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/std_mask/'
+    STD_MASK_CMP_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/std_cmp_mask/'
+    TISSUE_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/filter_5x_v2/filtered_mask/' 
     SCALE = 8
 
     slide_list = os.listdir(TISSUE_MASK_DIR)
@@ -86,5 +106,8 @@ if __name__ == '__main__':
     # for slide in slide_list:
     #     generate_anno_mask(slide, SCALE, DATA_DIR, ANNO_MASK_DIR)
     
+    # for slide in slide_list:
+    #     generate_std_mask(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR)
+    
     for slide in slide_list:
-        generate_std_mask(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR)
+        generate_std_mask_one_component(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_CMP_DIR)

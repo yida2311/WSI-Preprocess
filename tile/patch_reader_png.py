@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageOps
 import math
 import random
 
@@ -20,8 +20,9 @@ def get_patch_info(shape, p_size, overlap):
     step_x = step_y = p_size - overlap
     n = math.ceil(x / step_x)
     m = math.ceil(y / step_y)
-    step_x = (x - p_size) * 1.0 / (n - 1)
-    step_y = (y - p_size) * 1.0 / (m - 1)
+    
+    step_x = (x - p_size) * 1.0 / (n - 1) if n > 1 else step_x
+    step_y = (y - p_size) * 1.0 / (m - 1) if m > 1 else step_y
 
     return n, m, step_x, step_y
 
@@ -74,6 +75,10 @@ def sample_store_patches_png(file,
     slide_mask = Image.open(os.path.join(file_mask_dir, file_mask_name))
 
     W, H = slide.size
+    if W < patch_size or H < patch_size:
+        W = max(patch_size, W); H = max(patch_size, H)
+        slide = ImageOps.pad(slide, (W, H), color=(0, 0, 0), centering=[1,1])
+        slide_mask = ImageOps.pad(slide_mask, (W, H), color=0, centering=[1,1])
     # num of tiles in col and ver direction; cut step in col and ver
     col_tiles, ver_tiles, col_step, ver_step = get_patch_info([W, H], patch_size, overlap)
     generator = PatchGenerator(slide, slide_mask, patch_size, resize_factor=resize_factor, sample_type=sample_type)
