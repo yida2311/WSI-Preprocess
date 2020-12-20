@@ -2,11 +2,11 @@ import os
 import cv2
 import numpy as np
 
-from util import Time, open_image, open_image_np, np_to_pil, mask_rgb, mask_percent, mask_percentage_text, display_img
+from util import Time, open_image, open_image_np, np_to_pil, mask_rgb, mask_percent, mask_percentage_text, display_img, findHoles
 import basic_filter as filter
 
 
-def color_filter(np_img, item, save_dir=None, save=False, display=False, hole_size=1000, object_size=600):
+def color_filter(np_img, item, save_dir=None, save=False, display=False, hole_size=1000):
     rgb = np_img
     mask_not_green = filter.filter_green_channel(rgb)
     rgb_not_green = mask_rgb(rgb, mask_not_green)
@@ -29,16 +29,19 @@ def color_filter(np_img, item, save_dir=None, save=False, display=False, hole_si
     mask_remove_holes = filter.filter_remove_small_holes(mask_not_gray , min_size=hole_size, output_type="bool")
     rgb_remove_holes = mask_rgb(rgb, mask_remove_holes)
 
-    mask_remove_obejcts = filter.filter_remove_small_objects(mask_remove_holes, min_size=object_size, output_type="bool")
-    rgb_remove_obejcts = mask_rgb(rgb, mask_remove_obejcts)
+    # mask_remove_obejcts = filter.filter_remove_small_objects(mask_remove_holes, min_size=object_size, output_type="bool")
+    # rgb_remove_obejcts = mask_rgb(rgb, mask_remove_obejcts)
     
-    n, label, stats, centrids = cv2.connectedComponentsWithStats(np.array(mask_remove_obejcts, dtype='uint8'), connectivity=8)
+    n, label, stats, centrids = cv2.connectedComponentsWithStats(np.array(mask_remove_holes, dtype='uint8'), connectivity=8)
     index = np.argmax(stats[1:, 4])+1
-    mask_remove_isolated = np.zeros_like(mask_remove_obejcts, dtype='bool')
+    mask_remove_isolated = np.zeros_like(mask_remove_holes, dtype='bool')
     mask_remove_isolated[label==index] = 1
+    # holes = findHoles(mask_remove_isolated)
     rgb_remove_isolated = mask_rgb(rgb, mask_remove_isolated)
+    # rgb_remove_isolated = mask_rgb(rgb, mask_remove_isolated+holes)
+    # mask_remove_isolated = mask_remove_isolated - holes
 
-    return rgb_remove_isolated, mask_remove_isolated, rgb_remove_obejcts, mask_remove_obejcts
+    return rgb_remove_isolated, mask_remove_isolated, rgb_remove_holes, mask_remove_holes
 
 
 def save_display(np_img, dir, item, save, display, filter_num, display_text, file_text, 
