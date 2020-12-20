@@ -4,6 +4,7 @@ import sys
 import glob
 import math
 import gc
+from tqdm import tqdm
 
 import openslide
 import PIL
@@ -130,7 +131,7 @@ def training_slides_to_images(scale, slide_dir, img_dir, thm_dir, save_format='.
     names = glob.glob(slide_dir+'*.svs') 
     names = [c.split('/')[-1].split('.')[0] for c in names]
     print('Num of slides: {}'.format(len(names)))
-    for slide_name in names:
+    for slide_name in tqdm(names):
         training_slide_to_image(slide_name, scale, slide_dir, img_dir, thm_dir, save_format)
     t.elapsed_display()
 
@@ -150,12 +151,12 @@ def save_thumbnail(pil_img, size, path):
 
 
 if __name__ == '__main__':
-    SCALE = 8
-    FORMAT = '.png'
-    SLIDE_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/orig_data/'
-    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/5x_png/'
-    THM_DIR = '/media/ldy/7E1CA94545711AE6/OSCC_test/thumbnail/'
+  SCALE = 4
+  FORMAT = '.png'
+  SLIDE_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_40x/'
+  IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_png/'
+  THM_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/thumbnail/'
 
-    training_slides_to_images(SCALE, SLIDE_DIR, IMG_DIR, THM_DIR, save_format=FORMAT)
-
+  # training_slides_to_images(SCALE, SLIDE_DIR, IMG_DIR, THM_DIR, save_format=FORMAT)
+  training_slide_to_image('2017-13472', 8, SLIDE_DIR, IMG_DIR, THM_DIR)
 
