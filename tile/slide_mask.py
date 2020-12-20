@@ -1,68 +1,62 @@
 import os
 import math
+from glob import glob
 import cv2
 import json
 import openslide
-
+from tqdm import tqdm
 from PIL import Image
 import numpy as np
 from xml.dom import minidom
 
 
-def generate_std_mask(slide, tissue_mask_dir, anno_mask_dir, save_dir):
+def generate_mask(slide, tissue_mask_dir, anno_mask_dir, std_mask_dir, rgb_mask_dir):
+    """Generate std mask & rgb mask for segmentation and visualization"""
     tissue_mask_path = os.path.join(tissue_mask_dir, slide+'.png')
     anno_mask_path = os.path.join(anno_mask_dir, slide+'.png')
-    print(anno_mask_path)
+    
     tissue_mask = np.array(Image.open(tissue_mask_path).convert('1'))
     anno_mask = np.array(Image.open(anno_mask_path))
-    mask = tissue_mask * anno_mask + tissue_mask
-    mask = Image.fromarray(mask)
+    std_mask = tissue_mask * anno_mask + tissue_mask
+    rgb_mask = class_to_RGB(std_mask)
 
-    mask.save(os.path.join(save_dir, slide+'.png'))
-
-
-def generate_std_mask_one_component(slide, tissue_mask_dir, anno_mask_dir, save_dir):
-    tissue_mask_path = os.path.join(tissue_mask_dir, slide+'.png')
-    anno_mask_path = os.path.join(anno_mask_dir, slide+'.png')
-    print(anno_mask_path)
-    tissue_mask = cv2.cvtColor(cv2.imread(tissue_mask_path), cv2.COLOR_BGR2GRAY)
-    anno_mask = np.array(Image.open(anno_mask_path))
-
-    n, label, stats, centrids = cv2.connectedComponentsWithStats(tissue_mask, connectivity=8)
-    index = np.argmax(stats[1:, 4])+1
-    new_mask = np.zeros_like(tissue_mask, dtype='uint8')
-    new_mask[label==index] = 1
-
-    mask = new_mask * anno_mask + new_mask
-    mask = Image.fromarray(mask)
-
-    mask.save(os.path.join(save_dir, slide+'.png'))
+    std_mask = Image.fromarray(std_mask)
+    rgb_mask = Image.fromarray(rgb_mask)
+    std_mask.save(os.path.join(std_mask_dir, slide+'.png'))
+    rgb_mask.save(os.path.join(rgb_mask_dir, slide+'.png'))
 
 
+def generate_anno_mask(slide, scale, img_dir, xml_dir, save_dir, img_type='.png'):
+    """generate annotation mask """
+    img_path = os.path.join(img_dir, slide+img_type)
+    xml_path = os.path.join(xml_dir, slide+ '.xml')
 
-def generate_anno_mask(slide, scale, data_dir, save_dir):
-    wsi_path = os.path.join(data_dir, slide+'.svs')
-    anno_path = os.path.join(data_dir, slide+ '.xml')
+    if img_type == '.svs':
+        img = openslide.OpenSlide(img_path)
+        w, h = img.dimensions
+        w, h = math.floor(w/scale), math.floor(h/scale)
+    elif img_type == '.png':
+        img = cv2.imread(img_path)
+        h, w, _ = img.shape
+    else:
+        raise ValueError
 
-    wsi = openslide.OpenSlide(wsi_path)
-    w, h = wsi.dimensions
-    print(w, h)
+    print(h, w)
     mask = np.zeros((h, w), dtype=np.uint8)
 
-    regions, labels = get_regions(anno_path)
+    regions, labels = get_regions(xml_path, scale=scale)
     for region, label in zip(regions, labels):
         region = region.reshape(-1, 1, 2)
         cv2.polylines(mask, np.int32([region]), True, label)
         cv2.fillPoly(mask, np.int32([region]), label)
     
-    re_w = math.floor(w / scale); re_h = math.floor(h / scale)
-    mask = cv2.resize(mask, (re_w, re_h), interpolation=cv2.INTER_NEAREST)
     cv2.imwrite(os.path.join(save_dir, slide+'.png'), mask)
 
 
-def get_regions(path):
+def get_regions(xml_path, scale=4):
     ''' Parses the xml at the given path, assuming annotation format importable by ImageScope. '''
-    xml = minidom.parse(path)
+    xml = minidom.parse(xml_path)
+    region_coord, region_labels = [], []
     # The first region marked is always the tumour delineation
     annotations = xml.getElementsByTagName('Annotation')
     for annotation in annotations:
@@ -72,7 +66,6 @@ def get_regions(path):
         elif regions[0].getAttribute('Text') == "":
             continue
         else:
-            region_coord, region_labels = [], []
             for region in regions:
                 vertices = region.getElementsByTagName('Vertex')
                 attribute = region.getElementsByTagName("Attribute")
@@ -85,29 +78,47 @@ def get_regions(path):
                 # Store x, y coordinates into a 2D array in format [x1, y1], [x2, y2], ...
                 coords = np.zeros((len(vertices), 2))
                 for i, vertex in enumerate(vertices):
-                    coords[i][0] = int(vertex.attributes['X'].value)
-                    coords[i][1] = int(vertex.attributes['Y'].value)
+                    coords[i][0] = int(vertex.attributes['X'].value) // scale
+                    coords[i][1] = int(vertex.attributes['Y'].value) // scale
                 region_coord.append(coords)
             
     return region_coord, region_labels
 
 
+def class_to_RGB(label):
+    h, w = label.shape[0], label.shape[1]
+    colmap = np.zeros(shape=(h, w, 3)).astype(np.uint8)
+
+    indices = np.where(label == 1)
+    colmap[indices[0].tolist(), indices[1].tolist(), :] = [255, 0, 0]
+    indices = np.where(label == 2)
+    colmap[indices[0].tolist(), indices[1].tolist(), :] = [0, 255, 0]
+    indices = np.where(label == 3)
+    colmap[indices[0].tolist(), indices[1].tolist(), :] = [0, 0, 255]
+    indices = np.where(label == 0)
+    colmap[indices[0].tolist(), indices[1].tolist(), :] = [0, 0, 0]
+
+    return colmap
+
+
 if __name__ == '__main__':
-    DATA_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/orig_data/'
-    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/anno_mask/'
-    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/std_mask/'
-    STD_MASK_CMP_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/mask_5x_v2/std_cmp_mask/'
-    TISSUE_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/filter_5x_v2/filtered_mask/' 
-    SCALE = 8
+    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_png/'
+    XML_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_20x/'
+    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/anno_mask/'
+    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/std_mask/'
+    RGB_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/rgb_mask/'
+    TISSUE_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_filter/filtered_mask/' 
+    SCALE = 4
 
-    slide_list = os.listdir(TISSUE_MASK_DIR)
-    slide_list = [c.split('.')[0] for c in slide_list]
+    # slide_list = os.listdir(TISSUE_MASK_DIR)
+    # slide_list = [c.split('.')[0] for c in slide_list]
+    slide_list = glob(XML_DIR+'*.xml')
+    slide_list = sorted([c.split('/')[-1].split('.')[0] for c in slide_list])
 
-    # for slide in slide_list:
-    #     generate_anno_mask(slide, SCALE, DATA_DIR, ANNO_MASK_DIR)
-    
-    # for slide in slide_list:
-    #     generate_std_mask(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR)
+    for slide in tqdm(slide_list):
+        print(slide)
+        generate_anno_mask(slide, SCALE, IMG_DIR, XML_DIR, ANNO_MASK_DIR)
     
     for slide in slide_list:
-        generate_std_mask_one_component(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_CMP_DIR)
+        generate_mask   (slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR, RGB_MASK_DIR)
+    

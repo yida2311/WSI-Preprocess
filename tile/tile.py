@@ -22,25 +22,31 @@ from patch_reader_png import sample_store_patches_png, sample_store_patches_png_
 STORAGE_TYPES = ['png', 'hdf5']
 
 
-class Cutter(object):
+class Tiler(object):
     def __init__(self, 
                 slide_list,
                 file_dir,
-                file_mask_dir,
-                save_patch_dir,
-                scale_factor=8,
-                sample_type='seg',
-                save_mask_dir=None,
+                std_mask_dir=None,
+                rgb_mask_dir=None,
+                save_patch_dir=None,
+                save_std_mask_dir=None,
+                save_rgb_mask_dir=None,
                 storage_type='png',
+                sample_type='seg',
+                scale_factor=1,
                 ):
         """
         Params:
             slide_list: list of slide names
-            file_dir: SVS file path
-            file_mask_dir: tissue mask path
+            file_dir: WSI file path
+            std_mask_dir: std mask path
+            rgb_mask_dir: rgb mask path
             save_patch_dir: save file path
-            save_mask_dir: target file path
+            save_std_mask_dir: save std mask file path
+            save_rgb_mask_dir: save rgb mask file path
             storage_type: expecting 'png', 'hdf5', 'npy'
+            sample type: 'cls' or 'seg'
+            scale_factor: 
         """
         if storage_type not in STORAGE_TYPES:
             print("[subslide error]: storage type not recognised; expecting one of", STORAGE_TYPES)
@@ -49,9 +55,11 @@ class Cutter(object):
         self.storage_type = storage_type
         self.files = slide_list
         self.file_dir = file_dir
-        self.file_mask_dir = file_mask_dir
+        self.std_mask_dir = std_mask_dir
+        self.rgb_mask_dir = rgb_mask_dir
         self.save_patch_dir = save_patch_dir
-        self.save_mask_dir = save_mask_dir
+        self.save_std_mask_dir = save_std_mask_dir
+        self.save_rgb_mask_dir = save_rgb_mask_dir
         self.num_files = len(self.files)
         self.sample_type = sample_type
         self.scale_factor = scale_factor
@@ -61,9 +69,11 @@ class Cutter(object):
         print("======================================================")
         print("Storage type:              ", self.storage_type)
         print("Images directory:          ", self.file_dir)
-        print("Mask directory:            ", self.file_mask_dir)
+        print("Std Mask directory:        ", self.std_mask_dir)
+        print("RGB Mask directory:        ", self.rgb_mask_dir)
         print("Data store directory:      ", self.save_patch_dir)
-        print("Target store directory:    ", self.save_mask_dir)
+        print("Std Mask store directory:  ", self.save_std_mask_dir)
+        print("RGB Mask store directory:  ", self.save_rgb_mask_dir)
         print("Images found:              ", self.num_files)
         print("======================================================")
     
@@ -139,20 +149,22 @@ class Cutter(object):
             print(file, end=" ")
             file_info, patches_num = sample_store_patches_png(file,
                                                             self.file_dir,
-                                                            self.file_mask_dir,
+                                                            self.std_mask_dir,
+                                                            self.rgb_mask_dir,
                                                             self.save_patch_dir,
                                                             patch_size,
                                                             overlap,
                                                             filter_rate,
                                                             sample_type=self.sample_type,
-                                                            save_mask_dir=self.save_mask_dir,
+                                                            save_std_mask_dir=self.save_std_mask_dir,
+                                                            save_rgb_mask_dir=self.save_rgb_mask_dir,
                                                             resize_factor=resize_factor,
                                                             rows_per_iter=rows_per_iter,
                                                             storage_format=self.storage_type)
             info[file] = file_info
             total_num += patches_num
         
-        with open(os.path.join(self.save_patch_dir, 'subslide_info.json'), 'w') as f:
+        with open(os.path.join(self.save_patch_dir, 'tile_info.json'), 'w') as f:
             json.dump(info, f)
             
         print("")
