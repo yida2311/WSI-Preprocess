@@ -280,6 +280,29 @@ def filter_blue(rgb, red_upper_thresh, green_upper_thresh, blue_lower_thresh, ou
     return result
 
 
+def filter_otsu_threshold(np_img, output_type="uint8"):
+    """
+    Compute Otsu threshold on image as a NumPy array and return binary image based on pixels above threshold.
+    Args:
+        np_img: Image as a NumPy array.
+        output_type: Type of array to return (bool, float, or uint8).
+    Returns:
+        NumPy array (bool, float, or uint8) where True, 1.0, and 255 represent a pixel above Otsu threshold.
+    """
+    t = Time()
+    otsu_thresh_value = sk_filters.threshold_otsu(np_img)
+    otsu = (np_img > otsu_thresh_value)
+    if output_type == "bool":
+        pass
+    elif output_type == "float":
+        otsu = otsu.astype(float)
+    else:
+        otsu = otsu.astype("uint8") * 255
+    util.np_info(otsu, "Otsu Threshold", t.elapsed())
+    return otsu
+
+
+
 def filter_remove_small_holes(np_img, min_size=3000, output_type="uint8"):
     """
     Filter image to remove small holes less than a particular size.

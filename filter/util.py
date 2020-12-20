@@ -1,4 +1,5 @@
 import datetime
+import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
@@ -51,6 +52,24 @@ def open_image_np(filename):
   return np_img
 
 
+  def open_pad_image_np(filename):
+    """
+    Open an image (*.jpg, *.png, etc) and pad it as an RGB NumPy array.
+
+    Args:
+        filename: Name of the image file.
+
+    returns:
+        A NumPy representing an RGB image.
+    """
+    pil_img = open_image(filename)
+    w, h = pil_img.size
+    img_padded = Image.new('RGB', (w+10, h+10), color=(255, 255, 255))
+    img_padded.paste(pil_img, (5, 5, w+5, h+5))
+    np_img = pil_to_np_rgb(img_padded)
+    return np_img
+
+
 def np_to_pil(np_img):
   """
   Convert a NumPy array to a PIL Image.
@@ -66,6 +85,27 @@ def np_to_pil(np_img):
   elif np_img.dtype == "float64":
     np_img = (np_img * 255).astype("uint8")
   return Image.fromarray(np_img)
+
+
+def np_to_pil_crop(np_img):
+    """
+    Convert a NumPy array to a PIL Image.
+
+    Args:
+        np_img: The image represented as a NumPy array.
+
+    Returns:
+        The NumPy array converted to a PIL Image.
+    """
+    if np_img.dtype == "bool":
+        np_img = np_img.astype("uint8") * 255
+    elif np_img.dtype == "float64":
+        np_img = (np_img * 255).astype("uint8")
+    pil_img = Image.fromarray(np_img)
+    w, h = pil_img.size
+    pil_img = pil_img.crop(box=(5, 5, w-5, h-5))
+    
+    return pil_img
 
 
 def pil_to_np_rgb(pil_img):
@@ -188,3 +228,23 @@ def display_img(np_img, text=None, font_path="/Library/Fonts/Arial Bold.ttf", si
       draw.rectangle([(0, 0), (x + 5, y + 4)], fill=background, outline=border)
     draw.text((2, 0), text, color, font=font)
   result.show()
+
+
+def findHoles(mask):
+  """
+  Find all holes for the mask that contains only one connected component
+  """
+  # _, thresh = cv2.threshold(mask_np, 0, 1, cv2.THRESH_BINARY)
+  mask_np = np.array(mask, dtype='uint8')
+  contours, _ = cv2.findContours(mask_np, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+  areas = []
+  for i, cnt in enumerate(contours):
+    areas.append((i, cv2.contourArea(cnt)))
+
+  areas.sort(key=lambda d: d[1], reverse=True) #按面积大小，　从大到小排序
+  holes = np.zeros_like(mask_np)
+  cv2.drawContours(holes, contours, areas[0][0], 1, -1) #填充最大轮廓
+  holes = holes - mask_np
+
+  return holes
+      
