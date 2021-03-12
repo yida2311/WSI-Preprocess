@@ -114,11 +114,12 @@ if __name__ == '__main__':
     # slide_list = [c.split('.')[0] for c in slide_list]
     slide_list = glob(XML_DIR+'*.xml')
     slide_list = sorted([c.split('/')[-1].split('.')[0] for c in slide_list])
+    slide_list = ['2020-09612']
 
     for slide in tqdm(slide_list):
         print(slide)
         generate_anno_mask(slide, SCALE, IMG_DIR, XML_DIR, ANNO_MASK_DIR)
     
     for slide in slide_list:
-        generate_mask   (slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR, RGB_MASK_DIR)
+        generate_mask(slide, TISSUE_MASK_DIR, ANNO_MASK_DIR, STD_MASK_DIR, RGB_MASK_DIR)
     

@@ -44,6 +44,35 @@ def color_filter(np_img, item, save_dir=None, save=False, display=False, hole_si
     return rgb_remove_isolated, mask_remove_isolated, rgb_remove_holes, mask_remove_holes
 
 
+def color_filter_v2(np_img, item, save_dir=None, save=False, display=False, hole_size=1000, object_size=200):
+    rgb = np_img
+    mask_not_green = filter.filter_green_channel(rgb)
+    rgb_not_green = mask_rgb(rgb, mask_not_green)
+
+    mask_not_gray = filter.filter_grays(rgb, tolerance=13)
+    rgb_not_gray = mask_rgb(rgb, mask_not_gray)
+
+    mask_not_red_pen = filter.filter_red_pen(rgb)
+    rgb_not_red_pen = mask_rgb(rgb, mask_not_red_pen)
+
+    mask_not_green_pen = filter.filter_green_pen(rgb)
+    rgb_not_green_pen = mask_rgb(rgb, mask_not_green_pen)
+
+    mask_not_blue_pen = filter.filter_blue_pen(rgb)
+    rgb_not_blue_pen = mask_rgb(rgb, mask_not_blue_pen)
+
+    mask_gray_green_pens = mask_not_gray & mask_not_green & mask_not_red_pen & mask_not_green_pen & mask_not_blue_pen
+    rgb_gray_green_pens = mask_rgb(rgb, mask_gray_green_pens)
+    
+    mask_remove_holes = filter.filter_remove_small_holes(mask_not_gray , min_size=hole_size, output_type="bool")
+    rgb_remove_holes = mask_rgb(rgb, mask_remove_holes)
+
+    mask_remove_obejcts = filter.filter_remove_small_objects(mask_remove_holes, min_size=object_size, output_type="bool")
+    rgb_remove_obejcts = mask_rgb(rgb, mask_remove_obejcts)
+
+    return rgb_remove_obejcts, mask_remove_obejcts, rgb_remove_holes, mask_remove_holes
+
+
 def save_display(np_img, dir, item, save, display, filter_num, display_text, file_text, 
                 display_mask_percentage=True):
     mask_percentage = None

@@ -18,8 +18,8 @@ def get_patch_info(shape, p_size, overlap):
     x = shape[0]
     y = shape[1]
     step_x = step_y = p_size - overlap
-    n = math.ceil(x / step_x)
-    m = math.ceil(y / step_y)
+    n = math.ceil((x-p_size) / step_x) + 1
+    m = math.ceil((y-p_size) / step_y) + 1
     
     step_x = (x - p_size) * 1.0 / (n - 1) if n > 1 else step_x
     step_y = (y - p_size) * 1.0 / (m - 1) if m > 1 else step_y
