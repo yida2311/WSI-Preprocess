@@ -4,6 +4,10 @@ A. scaling
 
 ​	scaling the WSIs to specific scale and save to png format.
 
+(Optional) cut
+
+* filling the contaminated or non-essential tissue with black or white color.
+
 B. filter
 
 ​	filtering the scaled WSIs to get tissue mask.
