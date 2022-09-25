@@ -127,6 +127,99 @@ def sample_store_patches_png(file,
     return slide_info, count
 
 
+
+def sample_store_patches_mask_png(file,
+                        std_mask_dir,
+                        rgb_mask_dir,
+                        patch_size,
+                        overlap,
+                        filter_rate,
+                        sample_type='seg', # 'seg' or 'cls
+                        save_std_mask_dir=None,
+                        save_rgb_mask_dir=None,
+                        resize_factor=1,
+                        rows_per_iter=1,
+                        storage_format='png',
+                        ):
+    ''' Sample patches of specified size from .svs file.
+        - file             name of whole slide image to sample from
+        - file_dir              directory file is located in
+        - std_mask_dir          directory std mask file is located in 
+        - rgb_mask_dir          directory rgb mask file is located in 
+        - save_patch_dir        directory patches is stored
+        - patch_size            size of patches
+        - overlap               pixels overlap on each side
+        - filter_rate           rate of tissue
+        - scale_factor          scale between wsi and mask
+        - sample_type           sample type for task segmentation or classification
+        - save_std_mask_dir     directory patches std mask is stored
+        - save_rgb_mask_dir     directory patches rgb mask is stored
+        - resize_factor         resize factor of sampled patches
+        - storage_type          the patch storage option
+        - rows_per_txn          how many patches to load into memory at once
+                     
+        Note: patch_size is the dimension of the sampled patches, NOT equivalent to openslide's definition
+        of tile_size. This implementation was chosen to allow for more intuitive usage.
+    '''
+    std_mask_name = file + '.png'
+    rgb_mask_name = file + '.png'
+    tile_size = patch_size - 2 * overlap
+    
+    if sample_type == 'seg':
+        std_mask_location = os.path.join(save_std_mask_dir, file)
+        rgb_mask_location = os.path.join(save_rgb_mask_dir, file)
+        if not os.path.exists(std_mask_location):
+            os.makedirs(std_mask_location)
+        if not os.path.exists(rgb_mask_location):
+            os.makedirs(rgb_mask_location)
+
+    slide_std_mask = Image.open(os.path.join(std_mask_dir, std_mask_name))
+    slide_rgb_mask = Image.open(os.path.join(rgb_mask_dir, rgb_mask_name))
+
+    W, H = slide_std_mask.size
+    if W < patch_size or H < patch_size:
+        W = max(patch_size, W); H = max(patch_size, H)
+        slide_std_mask = ImageOps.pad(slide_std_mask, (W, H), color=0, centering=[1,1])
+        slide_rgb_mask = ImageOps.pad(slide_rgb_mask, (W, H), color=0, centering=[1,1])
+    # num of tiles in col and ver direction; cut step in col and ver
+    slide = slide_std_mask  # temp
+    col_tiles, ver_tiles, col_step, ver_step = get_patch_info([W, H], patch_size, overlap)
+    generator = PatchGenerator(slide, patch_size, slide_std_mask, slide_rgb_mask, resize_factor=resize_factor, sample_type=sample_type)
+    slide_info = dict(size=(H, W), tiles=(ver_tiles, col_tiles), step=(ver_step, col_step))
+    
+    print("ver_tiles({}), col_tiles({})".format(ver_tiles, col_tiles))
+    count = 0
+    coord = [0, 0]
+    for ver in range(ver_tiles):
+        if ver < ver_tiles-1:
+            coord[0] = int(ver * ver_step)
+        else:
+            coord[0] = int(H - patch_size)
+        for col in range(col_tiles):
+            print(ver, col)
+            if col < col_tiles - 1:
+                coord[1] = int(col * col_step)
+            else:
+                coord[1] = int(W - patch_size)
+            
+            tile_result = generator.get_patch_filtered(coord, filter_rate)
+            if tile_result is None:
+                continue
+            filtered_tile, tile_std_mask, tile_rgb_mask = tile_result
+            
+            if sample_type == 'seg':
+                # patch_save_to_png_seg(filtered_tile, db_location, [ver, col], file)
+                patch_save_to_png_seg(tile_std_mask, std_mask_location, [ver, col], file)
+                if tile_rgb_mask:
+                    patch_save_to_png_seg(tile_rgb_mask, rgb_mask_location, [ver, col], file)
+            else:
+                patch_save_to_png_cls(filtered_tile, db_location, [ver, col], file, target)
+            
+            count += 1
+            
+    return slide_info, count
+
+
 def sample_store_patches_png_test(file,
                         file_dir,
                         file_mask_dir,

@@ -35,7 +35,7 @@ def generate_anno_mask(slide, scale, img_dir, xml_dir, save_dir, img_type='.png'
         img = openslide.OpenSlide(img_path)
         w, h = img.dimensions
         w, h = math.floor(w/scale), math.floor(h/scale)
-    elif img_type == '.png':
+    elif img_type == '.png' or '.tif':
         img = cv2.imread(img_path)
         h, w, _ = img.shape
     else:
@@ -78,8 +78,8 @@ def get_regions(xml_path, scale=4):
                 # Store x, y coordinates into a 2D array in format [x1, y1], [x2, y2], ...
                 coords = np.zeros((len(vertices), 2))
                 for i, vertex in enumerate(vertices):
-                    coords[i][0] = int(vertex.attributes['X'].value) // scale
-                    coords[i][1] = int(vertex.attributes['Y'].value) // scale
+                    coords[i][0] = int(vertex.attributes['X'].value) // scale 
+                    coords[i][1] = int(vertex.attributes['Y'].value) // scale 
                 region_coord.append(coords)
             
     return region_coord, region_labels
@@ -102,19 +102,21 @@ def class_to_RGB(label):
 
 
 if __name__ == '__main__':
-    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_png/'
-    XML_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_20x/'
-    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/anno_mask/'
-    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/std_mask/'
-    RGB_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_mask/rgb_mask/'
+    IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_cut/'
+    XML_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_40x/'
+    ANNO_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/temp/anno_mask'
+    STD_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/temp/std_mask/'
+    RGB_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/temp/rgb_mask/'
     TISSUE_MASK_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_filter/filtered_mask/' 
-    SCALE = 4
+    SCALE = 8
 
     # slide_list = os.listdir(TISSUE_MASK_DIR)
     # slide_list = [c.split('.')[0] for c in slide_list]
-    slide_list = glob(XML_DIR+'*.xml')
-    slide_list = sorted([c.split('/')[-1].split('.')[0] for c in slide_list])
-    slide_list = ['2020-09612']
+    # slide_list = glob(XML_DIR+'*.xml')
+    # slide_list = sorted([c.split('/')[-1].split('.')[0] for c in slide_list])
+    # slide_list = ['2018-16294']
+    # slide_list = ['2020-07912', '2020-07912-2']  # ', 
+    slide_list = ['2017-05588']
 
     for slide in tqdm(slide_list):
         print(slide)

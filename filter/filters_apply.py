@@ -140,11 +140,9 @@ def apply_color_filter_to_dir_v2(src, dst, save=True, display=False, hole_size=1
     print("Applying filters to images\n")
 
     # image_list = sorted(os.listdir(src))
-    image_list = ['2018-13135.png', '2018-14773.png']
+    image_list = ['2018-04956.png']
     print('Number of images :  {}'.format(len(image_list)))
     # image_list = ['_20190403091259.png']
-    # image_list = [image_list[11], image_list[22]]
-    # image_list = ['_20190718215800.svs-080-32x-28662x73872-895x2308.png']
 
     FILTER_ING_DIR = dst + '/filtering'
     FILTER_DIR = dst + '/filtered_img'
@@ -175,9 +173,9 @@ def apply_color_filter_to_dir_v2(src, dst, save=True, display=False, hole_size=1
     print("Time to apply filters to all images: %s\n" % str(t.elapsed()))
 
 if __name__ == '__main__':
-    root = '/media/ldy/7E1CA94545711AE6/OSCC-王/fine/processed data/tumor/'
+    root = '/media/ldy/7E1CA94545711AE6/OSCC_FINE/'
     src_dir = root + '5x_png'
-    dst_dir = root + '5x_filter'
+    dst_dir = root + 'temp'
     hole_size = 4000
     object_size = 15000
     apply_color_filter_to_dir_v2(src_dir, dst_dir, hole_size=hole_size, object_size=object_size)

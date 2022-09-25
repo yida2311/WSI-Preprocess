@@ -53,12 +53,13 @@ def get_cut_regions(xml_path, scale=4):
 
 if __name__ == '__main__':
     IMG_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_png/'
-    XML_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_20x/'
+    XML_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/svs/svs_40x/'
     CUT_DIR = '/media/ldy/7E1CA94545711AE6/OSCC/5x_cut/'
-    SCALE = 4
+    SCALE = 8
 
-    slide_list = sorted(glob.glob(XML_DIR+ '*.xml'))
-    slide_list = [c.split('/')[-1].split('.')[0] for c in slide_list]
+    # slide_list = sorted(glob.glob(XML_DIR+ '*.xml'))
+    # slide_list = [c.split('/')[-1].split('.')[0] for c in slide_list]
+    slide_list = ['2017-05588']
 
     for slide in tqdm(slide_list):
         print(slide)
